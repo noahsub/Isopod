@@ -16,3 +16,20 @@ def has_permission(path: Path) -> bool:
     write_permission = os.access(path, os.W_OK)
     execute_permission = os.access(path, os.X_OK)
     return all((read_permission, write_permission, execute_permission))
+
+def check_selinux(path: Path) -> bool:
+    # Check if SELinux is enforced
+    result = run_command(['getenforce'], capture_output=True, text=True)
+    if result.stdout.strip() != 'Enforcing':
+        return False
+
+    # Get SELinux context for the specified directory
+    result = run_command(['ls', '-Zd', str(path)], capture_output=True, text=True)
+    if result.returncode != 0:
+        return False
+
+    parts = result.stdout.strip().split(':')
+    if len(parts) < 2:
+        return False
+
+    return parts[2] == 'container_file_t'
