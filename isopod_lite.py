@@ -2,7 +2,7 @@ from pathlib import Path
 import shlex
 
 from Managers.file_manager import create_directory, delete_directory, directory_exists
-from Managers.system_manager import check_selinux, has_permission, run_command
+from Managers.system_manager import has_permission, run_command
 
 if __name__ == "__main__":
     location = Path(input('Container Directory: '))
@@ -22,14 +22,6 @@ if __name__ == "__main__":
             create_directory(location.joinpath('data', 'run'))
             create_directory(location.joinpath('data', 'tmp'))
             create_directory(location.joinpath('data', 'xdg'))
-
-    # Check SELinux permissions are set correctly
-    if not check_selinux(location):
-        print(f"SELinux permissions are not set correctly for {location}")
-        print(f"An administrator can run the following command to set the correct permissions:")
-        print(f"sudo semanage fcontext -a -t container_file_t '{location}(/.*)?'")
-        print(f"sudo restorecon -Rv '{location}'")
-        exit(1)
 
     environment_variables = [('XDG_RUNTIME_DIR', str(location.joinpath('data', 'xdg')))]
 
