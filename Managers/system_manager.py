@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -9,7 +10,17 @@ def run_command(command: List[str], shell=False, capture_output=False, text=Fals
     merged_env = os.environ.copy()
     if env:
         merged_env.update(dict(env))
+
     return subprocess.run(command, shell=shell, capture_output=capture_output, text=text, env=merged_env)
+
+def run_command_interactive(command: List[str], env: Optional[List[Tuple[str, str]]] = None) -> None:
+    merged_env = os.environ.copy()
+    if env:
+        merged_env.update(dict(env))
+
+    subprocess.run(' '.join(shlex.quote(arg) for arg in command), shell=True, env=merged_env)
+    return None
+
 
 def has_permission(path: Path) -> bool:
     read_permission = os.access(path, os.R_OK)
