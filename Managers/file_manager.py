@@ -2,6 +2,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import List
+from uuid import uuid4
 
 
 def directory_exists(path: Path) -> bool:
@@ -23,3 +24,25 @@ def delete_directory_contents(path: Path) -> None:
             item.unlink()
         elif item.is_dir():
             shutil.rmtree(item)
+
+def create_temp_directory() -> Path:
+    """
+    Generate a temporary directory with a unique id.
+    :return: The path to the temporary directory.
+    """
+    uuid = str(uuid4())
+    current_dir = os.getcwd()
+    path = Path(current_dir).joinpath('tmp', uuid)
+    create_directory(path)
+    return path
+
+def create_file(path: Path, name: str, content: List[str] = []) -> None:
+    """
+    Create a file with the specified name and content.
+    :param path: The directory where the file will be created.
+    :param name: The name of the file.
+    :param content: The content to write to the file.
+    """
+    with open(path.joinpath(name), 'w') as f:
+        for line in content:
+            f.write(line + '\n')

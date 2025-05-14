@@ -1,0 +1,19 @@
+DataTable{
+  background: transparent;
+  height: auto;
+}
+
+Rule{
+  color: $primary;
+}
+
+Button{
+  height: 3;
+  background: transparent;
+  border: round $primary;
+}
+
+Input{
+  background: transparent;
+  border: round $primary;
+}

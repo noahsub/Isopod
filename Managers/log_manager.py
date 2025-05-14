@@ -1,4 +1,5 @@
 from datetime import datetime
+from subprocess import CompletedProcess
 from typing import List
 
 class LogManager:
@@ -19,3 +20,11 @@ class LogManager:
 
     def clear_logs(self):
         self.logs.clear()
+
+    def write_system_log(self, completed_process: CompletedProcess):
+        if completed_process.returncode == 0:
+            self.add_log(f"Command executed successfully: {completed_process.args}")
+            self.add_log(f"Output: {completed_process.stdout}")
+        else:
+            self.add_log(f"Command failed with return code {completed_process.returncode}: {completed_process.args}")
+            self.add_log(f"Error output: {completed_process.stderr}")

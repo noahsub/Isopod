@@ -1,0 +1,9 @@
+#log_container{
+  border: round $primary;
+  margin: 1 2;
+  padding: 1 2;
+}
+
+#log_content{
+  background: transparent;
+}

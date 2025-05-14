@@ -1,22 +1,4 @@
-DataTable{
-  background: transparent;
-  height: auto;
-}
 
-Rule{
-  color: $primary;
-}
-
-Button{
-  height: 3;
-  background: transparent;
-  border: round $primary;
-}
-
-Input{
-  background: transparent;
-  border: round $primary;
-}
 
 #strd_img_ctr {
   width: 1fr;
@@ -40,4 +22,18 @@ Input{
 
 #dh_tag_tbl{
   margin-top: 1;
+}
+
+#ib_dir{
+  width: 1fr;
+}
+
+#ib_dir_ctr{
+  height: auto;
+}
+
+#ib_editor{
+  height: 1fr;
+  background: transparent;
+  border: round $primary;
 }

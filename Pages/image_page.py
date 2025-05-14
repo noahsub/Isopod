@@ -1,14 +1,19 @@
+import os
+from pathlib import Path
+from uuid import uuid4
+
+from click import style
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Vertical, Horizontal, Container, VerticalScroll
 from textual.screen import Screen
-from textual.containers import Vertical, Center, Horizontal, Container, VerticalScroll
-from textual.widgets import Footer, OptionList, Static, Header, TabbedContent, TabPane, DataTable, Collapsible, Log, \
-    Input, Button, Select, LoadingIndicator, Rule
+from textual.widgets import Footer, Static, Header, TabbedContent, TabPane, DataTable, Input, Button, Rule, TextArea
 
+from Managers.file_manager import create_temp_directory, create_file
 from Managers.image_manager import list_images, pull_image, search_docker_hub_images, fetch_top_docker_hub_images, \
-    get_docker_hub_tags, remove_image
+    get_docker_hub_tags, remove_image, build_image
 from Managers.navigation_manager import NavigationManager
-from Managers.widget_manager import populate_table, get_selected_table_cell, add_table_row, get_selected_table_row
+from Managers.widget_manager import populate_table, get_selected_table_row
 
 
 class ImagePage(Screen):
@@ -51,7 +56,18 @@ class ImagePage(Screen):
                         with TabPane('GitHub Repository Image'):
                             yield Static('This feature will be available in a future release.')
                         with TabPane('Image Builder'):
-                            yield Static('This feature will be available in a future release.')
+                            yield Vertical(
+                                Static(
+                                    " Select a directory containing a Docker file and/or resources for image building, or create a temporary directory."),
+                                Horizontal(
+                                    Input(placeholder='Enter image directory',id='ib_dir'),
+                                    Button("Load Directory", id="load_dir_btn"),
+                                    Button("Create Temp Directory", id="create_tmp_dir_btn"),
+                                    id='ib_dir_ctr'
+                                ),
+                                TextArea(id='ib_editor', show_line_numbers=True, soft_wrap=True),
+                                Button('Build', id='ib_build_btn'),
+                            )
         yield Footer()
 
 
@@ -60,6 +76,9 @@ class ImagePage(Screen):
         self.display_top_docker_images()
         self.query_one('#strd_img_ctr').border_title = 'Stored Images'
         self.query_one('#img_src_ctr').border_title = 'Image Sources'
+
+        path = create_temp_directory()
+        self.query_one('#ib_dir', Input).value = str(path)
 
     def refresh_strd_img_tbl(self):
         data = list_images()
@@ -89,6 +108,18 @@ class ImagePage(Screen):
                 img_id = get_selected_table_row(self, 'strd_img_tbl')[2]
                 if remove_image(img_id):
                     self.refresh_strd_img_tbl()
+            case 'create_tmp_dir_btn':
+                path = create_temp_directory()
+                self.query_one('#ib_dir', Input).value = str(path)
+            case 'ib_build_btn':
+                path = Path(self.query_one('#ib_dir', Input).value)
+                if path.exists():
+                    editor = self.query_one('#ib_editor', TextArea)
+                    create_file(path, 'Dockerfile', editor.document.lines)
+                if build_image(path, 'my_image').returncode == 0:
+                    self.refresh_strd_img_tbl()
+
+
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected):
         match event.data_table.id:
