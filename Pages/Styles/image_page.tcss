@@ -1,0 +1,43 @@
+DataTable{
+  background: transparent;
+  height: auto;
+}
+
+Rule{
+  color: $primary;
+}
+
+Button{
+  height: 3;
+  background: transparent;
+  border: round $primary;
+}
+
+Input{
+  background: transparent;
+  border: round $primary;
+}
+
+#strd_img_ctr {
+  width: 1fr;
+  height: 1fr;
+  border: round $primary;
+  overflow: auto;
+  padding: 1 2;
+  margin: 1 1 1 2;
+}
+
+#img_src_ctr {
+  width: 2fr;
+  border: round $primary;
+  padding: 1 2;
+  margin: 1 2 1 1;
+}
+
+#dh_img_tbl{
+  margin-top: 1;
+}
+
+#dh_tag_tbl{
+  margin-top: 1;
+}
