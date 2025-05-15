@@ -31,7 +31,8 @@ class HomePage(Screen):
                 nav_manager = NavigationManager()
                 nav_manager.navigate('image_page')
             case 'Networks':
-                ...
+                nav_manager = NavigationManager()
+                nav_manager.navigate('network_page')
             case 'Pods':
                 ...
             case 'Volumes':
