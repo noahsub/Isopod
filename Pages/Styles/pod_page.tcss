@@ -1,5 +1,5 @@
 #pod_ctr {
-  width: 1fr;
+  width: 2fr;
   height: 1fr;
   border: round $primary;
   overflow: auto;
@@ -8,7 +8,7 @@
 }
 
 #crt_pod_ctr {
-  width: 2fr;
+  width: 1fr;
   border: round $primary;
   padding: 1 2;
   margin: 1 2 1 1;
