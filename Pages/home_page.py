@@ -23,19 +23,18 @@ class HomePage(Screen):
         )
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected):
+        nav_manager = NavigationManager()
         selected = event.option.prompt
         match selected:
             case 'Containers':
                 ...
             case 'Images':
-                nav_manager = NavigationManager()
                 nav_manager.navigate('image_page')
             case 'Networks':
-                nav_manager = NavigationManager()
                 nav_manager.navigate('network_page')
             case 'Pods':
-                ...
+                nav_manager.navigate('pod_page')
             case 'Volumes':
-                ...
+                nav_manager.navigate('volume_page')
             case 'Exit':
                 exit(0)
