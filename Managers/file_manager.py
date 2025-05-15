@@ -46,3 +46,14 @@ def create_file(path: Path, name: str, content: List[str] = []) -> None:
     with open(path.joinpath(name), 'w') as f:
         for line in content:
             f.write(line + '\n')
+
+def read_file_content(path: Path) -> List[str]:
+    """
+    Read the content of a file.
+    :param path: The path to the file.
+    :return: The content of the file as a list of lines.
+    """
+    if not path.exists():
+        return []
+    with open(path, 'r') as f:
+        return f.readlines()

@@ -37,3 +37,17 @@
   background: transparent;
   border: round $primary;
 }
+
+#git_repo{
+  width: 1fr;
+}
+
+#git_repo_ctr{
+  height: auto;
+}
+
+#git_editor{
+  height: 1fr;
+  background: transparent;
+  border: round $primary;
+}

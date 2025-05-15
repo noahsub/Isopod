@@ -9,17 +9,20 @@ from textual.containers import Vertical, Horizontal, Container, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Static, Header, TabbedContent, TabPane, DataTable, Input, Button, Rule, TextArea
 
-from Managers.file_manager import create_temp_directory, create_file
+from Managers.file_manager import create_temp_directory, create_file, read_file_content
 from Managers.image_manager import list_images, pull_image, search_docker_hub_images, fetch_top_docker_hub_images, \
     get_docker_hub_tags, remove_image, build_image
 from Managers.navigation_manager import NavigationManager
+from Managers.repository_manager import clone_github_repository
 from Managers.widget_manager import populate_table, get_selected_table_row
 
 
 class ImagePage(Screen):
     BINDINGS = [
         Binding(key='ctrl+q', action='quit', description='Quit the application'),
-        Binding(key='ctrl+l', action='logs', description='Display logs'),
+        Binding(key='ctrl+l', action='logs', description='Logs'),
+        Binding(key='ctrl+o', action='home', description='Home'),
+        Binding(key='ctrl+b', action='back', description='Back'),
     ]
 
     CSS_PATH = 'Styles/image_page.tcss'
@@ -54,11 +57,24 @@ class ImagePage(Screen):
                         with TabPane('Distroless Images'):
                             yield Static('This feature will be available in a future release.')
                         with TabPane('GitHub Repository Image'):
-                            yield Static('This feature will be available in a future release.')
+                            yield Vertical(
+                                Static(" Image Name"),
+                                Input(placeholder='my-image', id='git_img_name'),
+                                Static(
+                                    " Enter a GitHub repository URL containing a Docker file and/or resources for image building."),
+                                Horizontal(
+                                    Input(placeholder='Enter image directory', id='git_repo'),
+                                    Button("Clone Repository", id="clone_git_btn"),
+                                    id='git_repo_ctr'
+                                ),
+                                TextArea(id='git_editor', show_line_numbers=True, soft_wrap=True),
+                                Button('Build', id='git_build_btn'),
+                            )
                         with TabPane('Image Builder'):
                             yield Vertical(
-                                Static(
-                                    " Select a directory containing a Docker file and/or resources for image building, or create a temporary directory."),
+                                Static(" Image Name"),
+                                Input(placeholder='my-image', id='ib_img_name'),
+                                Static(" Enter a directory containing a Docker file and/or resources for image building, or create a temporary directory."),
                                 Horizontal(
                                     Input(placeholder='Enter image directory',id='ib_dir'),
                                     Button("Load Directory", id="load_dir_btn"),
@@ -79,6 +95,7 @@ class ImagePage(Screen):
 
         path = create_temp_directory()
         self.query_one('#ib_dir', Input).value = str(path)
+        self.query_one('#ib_img_name', Input).value = path.name
 
     def refresh_strd_img_tbl(self):
         data = list_images()
@@ -98,6 +115,7 @@ class ImagePage(Screen):
                 self.display_docker_images(event.input.value)
 
     def on_button_pressed(self, event: Button.Pressed):
+        git_repo_dir = Path()
         match event.button.id:
             case 'dh_img_dl_btn':
                 repository = self.query_one('#dh_img_url', Input).value
@@ -113,12 +131,37 @@ class ImagePage(Screen):
                 self.query_one('#ib_dir', Input).value = str(path)
             case 'ib_build_btn':
                 path = Path(self.query_one('#ib_dir', Input).value)
+                image_name = self.query_one('#ib_img_name', Input).value
                 if path.exists():
                     editor = self.query_one('#ib_editor', TextArea)
                     create_file(path, 'Dockerfile', editor.document.lines)
-                if build_image(path, 'my_image').returncode == 0:
+                if build_image(path, image_name if image_name != '' else 'my-image').returncode == 0:
                     self.refresh_strd_img_tbl()
-
+            case 'load_dir_btn':
+                path = Path(self.query_one('#ib_dir', Input).value)
+                if path.exists():
+                    self.query_one('#ib_img_name', Input).value = path.name
+                    editor = self.query_one('#ib_editor', TextArea)
+                    content = read_file_content(path.joinpath('Dockerfile'))
+                    editor.text = '\n'.join([x.replace('\n', '') for x in content])
+            case 'clone_git_btn':
+                repo_url = self.query_one('#git_repo', Input).value
+                # repo_name = self.query_one('#git_img_name', Input).value
+                path = clone_github_repository(repo_url)
+                if path.exists():
+                    self.query_one('#git_img_name', Input).value = path.name
+                    editor = self.query_one('#git_editor', TextArea)
+                    content = read_file_content(path.joinpath('Dockerfile'))
+                    editor.text = '\n'.join([x.replace('\n', '') for x in content])
+                    git_repo_dir = path
+            case 'git_build_btn':
+                path = git_repo_dir
+                image_name = self.query_one('#git_img_name', Input).value
+                if path.exists():
+                    editor = self.query_one('#git_editor', TextArea)
+                    create_file(path, 'Dockerfile', editor.document.lines)
+                if build_image(path, image_name if image_name != '' else 'my-image').returncode == 0:
+                    self.refresh_strd_img_tbl()
 
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected):
@@ -135,3 +178,11 @@ class ImagePage(Screen):
     def action_logs(self):
         nav_manager = NavigationManager()
         nav_manager.navigate('log_page')
+
+    def action_home(self):
+        nav_manager = NavigationManager()
+        nav_manager.navigate('home_page')
+
+    def action_back(self):
+        nav_manager = NavigationManager()
+        nav_manager.navigate(nav_manager.previous_screen)

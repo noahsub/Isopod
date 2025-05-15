@@ -13,6 +13,7 @@ class LogPage(Screen):
 
     BINDINGS = [
         Binding(key='ctrl+q', action='quit', description='Quit the application'),
+        Binding(key='ctrl+o', action='home', description='Home'),
         Binding(key='ctrl+b', action='back', description='Go back'),
     ]
 
@@ -38,3 +39,7 @@ class LogPage(Screen):
     def action_back(self):
         nav_manager = NavigationManager()
         nav_manager.navigate(nav_manager.previous_screen)
+
+    def action_home(self):
+        nav_manager = NavigationManager()
+        nav_manager.navigate('home_page')
