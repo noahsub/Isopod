@@ -21,3 +21,33 @@
 #crt_container_selected_image{
   margin-bottom: 1;
 }
+
+#crt_container_port_mapping_container{
+    height: auto;
+}
+
+#crt_container_host_port{
+  width: 1fr;
+}
+
+#crt_container_port{
+  width: 1fr;
+}
+
+#crt_container_environment_variable_container{
+    height: auto;
+}
+
+#crt_container_key{
+  width: 1fr;
+}
+
+#crt_container_value{
+  width: 1fr;
+}
+
+#container_actions{
+  margin-bottom: 1;
+  background: transparent;
+  border: round $primary;
+}

@@ -29,3 +29,28 @@ def add_table_row(screen: Screen, table_id: str, data: List[List[str]]) -> None:
     table = screen.query_one(f'#{table_id}', DataTable)
     table.add_rows(data)
 
+
+def remove_table_row(screen: Screen, table_id: str) -> None:
+    table = screen.query_one(f'#{table_id}', DataTable)
+    coordinate = table.cursor_coordinate
+
+    if coordinate:
+        row_index, _ = coordinate
+        row_keys = list(table.rows.keys())
+        if 0 <= row_index < len(row_keys):
+            row_key = row_keys[row_index]
+            table.remove_row(row_key)
+        else:
+            raise IndexError("Row index out of range.")
+
+def read_table_rows(screen: Screen, table_id: str) -> List[List[Any]]:
+    table = screen.query_one(f'#{table_id}', DataTable)
+    rows = []
+    for index in range(len(table.rows)):
+        rows.append(table.get_row_at(index))
+    return rows
+
+
+
+
+

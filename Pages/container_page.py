@@ -1,15 +1,20 @@
 from textual import events
 from textual.app import Screen, ComposeResult, Binding
 from textual.containers import Vertical, Horizontal, Container, VerticalScroll
-from textual.widgets import Footer, Static, Header, DataTable, Button, Input, TabbedContent, TabPane, Switch, Rule
+from textual.widgets import Footer, Static, Header, DataTable, Button, Input, TabbedContent, TabPane, Switch, Rule, \
+    OptionList
 
 from Managers.image_manager import list_images
+from Managers.log_manager import LogManager
 from Managers.navigation_manager import NavigationManager
-from Managers.container_manager import create_container, list_containers, remove_container
+from Managers.container_manager import create_container, list_containers, remove_container, start_container, \
+    exec_container_shell, attach_container, restart_container, stop_container
 from Managers.network_manager import list_networks
 from Managers.pod_manager import list_pods
 from Managers.volume_manager import list_volumes
-from Managers.widget_manager import populate_table, get_selected_table_row
+from Managers.widget_manager import populate_table, get_selected_table_row, add_table_row, remove_table_row, \
+    read_table_rows
+
 
 class ContainerPage(Screen):
     BINDINGS = [
@@ -27,8 +32,14 @@ class ContainerPage(Screen):
             with Horizontal():
                 with Container(id='container_ctr'):
                     yield VerticalScroll(
-                        DataTable(id='container_tbl'),
-                        Button('Remove', id='rm_container_btn')
+                        OptionList(
+                            'Start',
+                            'Stop',
+                            'Restart',
+                            'Remove',
+                            id='container_actions',
+                        ),
+                        DataTable(id='container_tbl')
                     )
                 with Container(id='crt_container_ctr'):
                     with TabbedContent(id='crt_container_tabs'):
@@ -38,9 +49,9 @@ class ContainerPage(Screen):
                                 Input(placeholder='my-container', id='crt_container_name'),
                                 Static(" Detach | Interactive | TTY"),
                                 Horizontal(
-                                    Switch(animate=True, id='detach_switch'),
-                                    Switch(animate=True, id='interactive_switch'),
-                                    Switch(animate=True, id='tty_switch'),
+                                    Switch(animate=True, id='detach_switch', value=True),
+                                    Switch(animate=True, id='interactive_switch', value=True),
+                                    Switch(animate=True, id='tty_switch', value=True),
                                     id='crt_container_switches'
                                 ),
                                 Static(' Start Command'),
@@ -78,6 +89,34 @@ class ContainerPage(Screen):
                                 Static(' Pod not listed? Create a New Pod'),
                                 Button('Create Pod', id='crt_container_new_pod_btn'),
                             )
+                        with TabPane('Port Forwarding'):
+                            yield VerticalScroll(
+                                Static(' Ports'),
+                                Horizontal(
+                                    Input(placeholder='Host Port', id='crt_container_host_port'),
+                                    Input(placeholder='Container Port', id='crt_container_port'),
+                                    id='crt_container_port_mapping_container'
+                                ),
+                                Button('Add Port Mapping', id='crt_container_add_port_btn'),
+                                Rule(),
+                                Static(' Port Mappings'),
+                                DataTable(id='crt_container_port_tbl'),
+                                Button('Remove', id='crt_container_remove_port_btn'),
+                            )
+                        with TabPane('Environment Variables'):
+                            yield VerticalScroll(
+                                Static(' Environment Variables'),
+                                Horizontal(
+                                    Input(placeholder='Key', id='crt_container_key'),
+                                    Input(placeholder='Value', id='crt_container_value'),
+                                    id='crt_container_environment_variable_container'
+                                ),
+                                Button('Add Environment Variable', id='crt_container_add_environment_variable_btn'),
+                                Rule(),
+                                Static(' Environment Variables'),
+                                DataTable(id='crt_container_environment_variable_tbl'),
+                                Button('Remove', id='crt_container_remove_environment_variable_btn'),
+                            )
                         with TabPane('Storage'):
                             yield VerticalScroll(
                                 Static(' Selected Volume'),
@@ -109,6 +148,8 @@ class ContainerPage(Screen):
     def on_mount(self, event: events.Mount) -> None:
         self.query_one('#container_ctr').border_title = 'Containers'
         self.query_one('#crt_container_ctr').border_title = 'Create Container'
+        populate_table(self, 'crt_container_port_tbl', [['Host Port', 'Container Port']])
+        populate_table(self, 'crt_container_environment_variable_tbl', [['Key', 'Value']])
 
     def on_button_pressed(self, event: Button.Pressed):
         nav_manager = NavigationManager()
@@ -124,6 +165,8 @@ class ContainerPage(Screen):
                 volume = self.query_one('#crt_container_selected_volume', Input).value
                 mount_path = self.query_one('#crt_container_mount_path', Input).value
                 image = self.query_one('#crt_container_selected_image', Input).value
+                ports = [(x[0], x[1]) for x in read_table_rows(self, 'crt_container_port_tbl')]
+                env_vars = [(x[0], x[1]) for x in read_table_rows(self, 'crt_container_environment_variable_tbl')]
 
                 if create_container(name=name,
                                     image=image,
@@ -134,6 +177,8 @@ class ContainerPage(Screen):
                                     network=network,
                                     pod=pod,
                                     volume=volume,
+                                    ports=ports,
+                                    env_vars=env_vars,
                                     mount_path=mount_path).returncode == 0:
                     self.refresh_container_tbl()
             case 'rm_container_btn':
@@ -146,6 +191,24 @@ class ContainerPage(Screen):
                 nav_manager.navigate('image_page')
             case 'crt_container_new_pod_btn':
                 nav_manager.navigate('pod_page')
+            case 'crt_container_add_port_btn':
+                host_port = self.query_one('#crt_container_host_port', Input).value
+                container_port = self.query_one('#crt_container_port', Input).value
+                if host_port and container_port:
+                    add_table_row(self, 'crt_container_port_tbl', [[host_port, container_port]])
+                # Clear the input fields
+                self.query_one('#crt_container_host_port', Input).value = ''
+                self.query_one('#crt_container_port', Input).value = ''
+            case 'crt_container_remove_port_btn':
+                remove_table_row(self, 'crt_container_port_tbl')
+            case 'crt_container_add_environment_variable_btn':
+                key = self.query_one('#crt_container_key', Input).value
+                value = self.query_one('#crt_container_value', Input).value
+                if key and value:
+                    add_table_row(self, 'crt_container_environment_variable_tbl', [[key, value]])
+                # Clear the input fields
+                self.query_one('#crt_container_key', Input).value = ''
+                self.query_one('#crt_container_value', Input).value = ''
 
     def refresh_container_tbl(self):
         data = list_containers()
@@ -194,5 +257,21 @@ class ContainerPage(Screen):
     def action_back(self):
         nav_manager = NavigationManager()
         nav_manager.navigate(nav_manager.previous_screen)
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected):
+        if event.option_list.id == 'container_actions':
+            selected_action = event.option.prompt
+            selected_container = get_selected_table_row(self, 'container_tbl')[0]
+            match selected_action:
+                case 'Start':
+                    start_container(selected_container)
+                case 'Stop':
+                    stop_container(selected_container)
+                case 'Restart':
+                    restart_container(selected_container)
+                case 'Remove':
+                    remove_container(selected_container)
+
+            self.refresh_container_tbl()
 
 

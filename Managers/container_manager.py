@@ -2,7 +2,8 @@ import json
 from typing import Optional, List, Dict, Tuple
 
 from Managers.log_manager import LogManager
-from Managers.system_manager import run_command
+from Managers.system_manager import run_command, run_command_interactive
+
 
 def create_container(name: str, image: str, network: Optional[str] = None, pod: Optional[str] = None, volume: Optional[str] = None, mount_path: Optional[str] = None, command: Optional[str] = None, detached: bool = True, interactive: bool = True, tty: bool = True, ports: Optional[List[Tuple[str, str]]] = None, env_vars: Optional[List[Tuple[str, str]]] = None):
 
@@ -26,14 +27,12 @@ def create_container(name: str, image: str, network: Optional[str] = None, pod: 
 
     cmd.append(command) if command else None
 
-    print(' '.join(cmd))
+    result = run_command(cmd)
 
-    # result = run_command(cmd)
-    #
-    # log_manager = LogManager()
-    # log_manager.write_system_log(result)
-    #
-    # return result
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
+
+    return result
 
 
 def list_containers() -> List[List[str]]:
@@ -56,7 +55,7 @@ def list_containers() -> List[List[str]]:
             command = ' '.join(container.get("Command", [])) if container.get("Command") else ""
             created = container.get("CreatedAt") or ""
             status = container.get("Status") or ""
-            ports = ', '.join([f"{p['HostPort']}/{p['Protocol']}" for p in (container.get("Ports") or [])])
+            ports = ', '.join([f"{p['host_port']}->{p['container_port']}/{p['protocol']}" for p in (container.get("Ports") or [])])
             names = ', '.join(container.get("Names", []))
 
             data.append([container_id, image, command, created, status, ports, names])
@@ -66,6 +65,15 @@ def list_containers() -> List[List[str]]:
 
     return data
 
+def start_container(name: str):
+    cmd = ['podman', 'start', name]
+    result = run_command(cmd, capture_output=True, text=True)
+
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
+
+    return result
+
 def stop_container(name: str):
     cmd = ['podman', 'stop', name]
     result = run_command(cmd, capture_output=True, text=True)
@@ -74,6 +82,23 @@ def stop_container(name: str):
     log_manager.write_system_log(result)
 
     return result
+
+def restart_container(name: str):
+    cmd = ['podman', 'restart', name]
+    result = run_command(cmd, capture_output=True, text=True)
+
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
+
+    return result
+
+def attach_container(name: str) -> None:
+    cmd = ['podman', 'attach', name]
+    run_command_interactive(cmd)
+
+def exec_container_shell(name: str, shell: str = 'sh') -> None:
+    cmd = ['podman', 'exec', '-it', name, shell]
+    run_command_interactive(cmd)
 
 def remove_container(name: str):
     stop_container(name)
