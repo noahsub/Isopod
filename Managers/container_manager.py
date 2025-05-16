@@ -1,157 +1,86 @@
 import json
-import os.path
-import pprint
-from datetime import datetime, timezone
-from pathlib import Path
-from subprocess import CompletedProcess
-from typing import Tuple, List
+from typing import Optional, List, Dict, Tuple
 
-from Managers.file_manager import directory_exists, create_directory
-from Managers.system_manager import has_permission, run_command
+from Managers.log_manager import LogManager
+from Managers.system_manager import run_command
+
+def create_container(name: str, image: str, network: Optional[str] = None, pod: Optional[str] = None, volume: Optional[str] = None, mount_path: Optional[str] = None, command: Optional[str] = None, detached: bool = True, interactive: bool = True, tty: bool = True, ports: Optional[List[Tuple[str, str]]] = None, env_vars: Optional[List[Tuple[str, str]]] = None):
+
+    network = None if network and pod else network
+
+    cmd = ["podman", "run", "--name", name]
+
+    cmd += ["--network", network] if network else []
+    cmd += ["--pod", pod] if pod else []
+    cmd += ["-v", f"{volume}:{mount_path}"] if volume and mount_path else []
+
+    cmd += [item for host_port, container_port in ports for item in ("-p", f"{host_port}:{container_port}")] if ports else []
+
+    cmd += [item for key, value in env_vars for item in ("--env", f"{key}={value}")] if env_vars else []
+
+    cmd += ["-d"] if detached else []
+    cmd += ["-i"] if interactive else []
+    cmd += ["-t"] if tty else []
+
+    cmd.append(image)
+
+    cmd.append(command) if command else None
+
+    print(' '.join(cmd))
+
+    # result = run_command(cmd)
+    #
+    # log_manager = LogManager()
+    # log_manager.write_system_log(result)
+    #
+    # return result
 
 
-########################################################################################################################
-# DEPRECIATED
-########################################################################################################################
-
-def base_command_depreciated(location: Path) -> Tuple[List[str], List[Tuple[str, str]]]:
-    environment_variables = [
-        ('XDG_RUNTIME_DIR', f'{location}/data/xdg'),
-    ]
-    return (['podman',
-             '--root', str(location.joinpath('data', 'storage')),
-             '--runroot', str(location.joinpath('data', 'run')),
-             '--tmpdir', str(location.joinpath('data', 'tmp')),
-             '--storage-opt', 'mount_program=/usr/bin/fuse-overlayfs'],
-            environment_variables)
-
-def create_pod_depreciated(location: Path, name: str, ports: List[Tuple[int, int]] = [], dns='1.1.1.1'):
-    # If the directory has not been created yet
-    if not directory_exists(location):
-        # Check if the parent directory exists and the user has permissions for it
-        if not (directory_exists(location.parent) and has_permission(location.parent)):
-            # Either the parent directory does not exist or the user does not have permissions, hence return
-            return
-        else:
-            # Create the directory
-            create_directory(location)
-            create_directory(location.joinpath('data'))
-            create_directory(location.joinpath('data', 'storage'))
-            create_directory(location.joinpath('data', 'run'))
-            create_directory(location.joinpath('data', 'tmp'))
-            create_directory(location.joinpath('data', 'xdg'))
-
-    cmd, environment_variables = base_command_depreciated(location)
-    cmd += ['pod', 'create', '--name', name, '--dns', dns]
-    for port in ports:
-        cmd += ['--publish', f'{port[0]}:{port[1]}']
-    return run_command(cmd, capture_output=True, text=True, env=environment_variables)
-
-def list_pods_depreciated(location: Path) -> CompletedProcess:
-    cmd, environment_variables = base_command_depreciated(location)
-    cmd += ['pod', 'ps', '--format', 'json']
-    return run_command(cmd, capture_output=True, text=True, env=environment_variables)
-
-def list_containers_depreciated(location: Path) -> CompletedProcess:
-    cmd, environment_variables = base_command_depreciated(location)
-    cmd += ['ps', '--all', '--format', 'json']
-    return run_command(cmd, capture_output=True, text=True, env=environment_variables)
-
-def create_container_depreciated(location: Path,
-                                 name: str,
-                                 image: str,
-                                 env: List[Tuple[str, str]] = [],
-                                 ports: List[Tuple[int, int]] = [],
-                                 volumes: List[Tuple[str, str]] = [],
-                                 command: str = '',
-                                 detach: bool = True,
-                                 interactive: bool = True,
-                                 tty: bool = True,
-                                 dns: str = '1.1.1.1',
-                                 pod: str = '') -> CompletedProcess | None:
+def list_containers() -> List[List[str]]:
     """
-    Create a podman container.
-    :param location: The directory to store the container
-    :param name: The name of the container
-    :param image: The image to use
-    :return:
+    List all podman containers with their details.
+    :return: A list of containers with their details.
     """
+    cmd = ["podman", "ps", "-a", "--format", "json"]
 
-    # If the directory has not been created yet
-    if not directory_exists(location):
-        # Check if the parent directory exists and the user has permissions for it
-        if not (directory_exists(location.parent) and has_permission(location.parent)):
-            # Either the parent directory does not exist or the user does not have permissions, hence return
-            return
-        else:
-            # Create the directory
-            create_directory(location)
-            create_directory(location.joinpath('data'))
-            create_directory(location.joinpath('data', 'storage'))
-            create_directory(location.joinpath('data', 'run'))
-            create_directory(location.joinpath('data', 'tmp'))
-            create_directory(location.joinpath('data', 'xdg'))
+    headers = ["CONTAINER ID", "IMAGE", "COMMAND", "CREATED", "STATUS", "PORTS", "NAMES"]
+    data = [headers]
 
-    # Check if the user has permissions for the directory
-    if not has_permission(location):
-        # The user does not have permissions, hence return
-        return
+    result = run_command(cmd, capture_output=True, text=True)
 
-    cmd, environment_variables = base_command_depreciated(location)
+    if result.returncode == 0:
+        content = json.loads(result.stdout)
+        for container in content:
+            container_id = container.get("Id")[:12]  # Shortened ID
+            image = container.get("Image")
+            command = ' '.join(container.get("Command", [])) if container.get("Command") else ""
+            created = container.get("CreatedAt") or ""
+            status = container.get("Status") or ""
+            ports = ', '.join([f"{p['HostPort']}/{p['Protocol']}" for p in (container.get("Ports") or [])])
+            names = ', '.join(container.get("Names", []))
 
-    cmd += ['run']
+            data.append([container_id, image, command, created, status, ports, names])
 
-    if detach:
-        cmd += ['--detach']
-    if interactive:
-        cmd += ['--interactive']
-    if tty:
-        cmd += ['--tty']
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
 
-    cmd += ['--name', name]
+    return data
 
-    for e in env:
-        cmd += ['--env', f'{e[0]}={e[1]}']
+def stop_container(name: str):
+    cmd = ['podman', 'stop', name]
+    result = run_command(cmd, capture_output=True, text=True)
 
-    for port in ports:
-        cmd += ['--publish', f'{port[0]}:{port[1]}']
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
 
-    for volume in volumes:
-        cmd += ['--volume', f'{volume[0]}:{volume[1]}']
-
-    cmd += ['--dns', dns]
-
-    if pod:
-        cmd += ['--pod', pod]
-
-    cmd += [image]
-    cmd += [command]
-
-    result = run_command(cmd, capture_output=True, text=True, env=environment_variables)
     return result
 
+def remove_container(name: str):
+    stop_container(name)
+    cmd = ['podman', 'rm', name]
+    result = run_command(cmd, capture_output=True, text=True)
 
+    log_manager = LogManager()
+    log_manager.write_system_log(result)
 
-
-
-
-# if __name__ == '__main__':
-    # Location
-    # location = Path('/containers/podman/alpine3')
-    #
-    # # Container 1
-    # result = create_container(location=location,
-    #                           name='alpine3',
-    #                           image='alpine',
-    #                           command='sh')
-    # print(result.returncode, result.stdout, result.stderr)
-    #
-    # for e in base_command(location)[1]:
-    #     print(f'export {e[0]}={e[1]}')
-    # print(' '.join(base_command(location)[0]))
-
-
-########################################################################################################################
-# NEW
-########################################################################################################################
-
+    return result

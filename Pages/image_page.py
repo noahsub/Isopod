@@ -37,7 +37,7 @@ class ImagePage(Screen):
                         Button('Remove', id='rm_img_btn')
                     )
                 with Container(id='img_src_ctr'):
-                    with TabbedContent(id='tabs'):
+                    with TabbedContent(id='img_tabs'):
                         with TabPane('Docker Hub Images'):
                             yield VerticalScroll(
                                 # Docker Hub Search Input

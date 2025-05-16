@@ -1,6 +1,7 @@
 from textual.app import App
 
 from Managers.navigation_manager import NavigationManager
+from Pages.container_page import ContainerPage
 from Pages.home_page import HomePage
 from Pages.image_page import ImagePage
 from Pages.log_page import LogPage
@@ -26,6 +27,7 @@ class IsopodApp(App):
         nav_manager.install(NetworkPage(), 'network_page', 'Network Manager')
         nav_manager.install(PodPage(), 'pod_page', 'Pod Manager')
         nav_manager.install(VolumePage(), 'volume_page', 'Volume Manager')
+        nav_manager.install(ContainerPage(), 'container_page', 'Container Manager')
         nav_manager.navigate('home_page')
 
 

@@ -17,3 +17,8 @@ Input{
   background: transparent;
   border: round $primary;
 }
+
+Switch{
+  background: transparent;
+  border: round $primary;
+}

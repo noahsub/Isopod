@@ -27,7 +27,7 @@ class HomePage(Screen):
         selected = event.option.prompt
         match selected:
             case 'Containers':
-                ...
+                nav_manager.navigate('container_page')
             case 'Images':
                 nav_manager.navigate('image_page')
             case 'Networks':

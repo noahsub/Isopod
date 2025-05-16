@@ -1,0 +1,23 @@
+#container_ctr {
+  width: 1fr;
+  height: 1fr;
+  border: round $primary;
+  overflow: auto;
+  padding: 1 2;
+  margin: 1 1 1 2;
+}
+
+#crt_container_ctr {
+  width: 1fr;
+  border: round $primary;
+  padding: 1 2;
+  margin: 1 2 1 1;
+}
+
+#crt_container_switches{
+  height: auto;
+}
+
+#crt_container_selected_image{
+  margin-bottom: 1;
+}
