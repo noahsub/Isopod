@@ -18,7 +18,29 @@ Input{
   border: round $primary;
 }
 
-Switch{
+Switch {
   background: transparent;
   border: round $primary;
+}
+
+#title{
+  text-align: center;
+  margin-bottom: 1;
+}
+
+#options{
+  background: transparent;
+  border: none;
+  text-align: center;
+}
+
+#menu {
+  background: $background;
+  border: none;
+  align: center middle;
+}
+
+#main_content{
+  background: transparent;
+  align: center middle;
 }

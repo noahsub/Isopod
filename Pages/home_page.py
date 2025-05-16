@@ -1,7 +1,7 @@
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Vertical, Center
-from textual.widgets import Footer, OptionList, Static
+from textual.widgets import Footer, OptionList, Static, Header
 
 from Managers.navigation_manager import NavigationManager
 
@@ -10,16 +10,21 @@ class HomePage(Screen):
     CSS_PATH = 'Styles/home_page.tcss'
 
     def compose(self) -> ComposeResult:
-        yield Vertical(
-            Static('Isopod'),
-            OptionList(
-                'Containers',
-                'Images',
-                'Networks',
-                'Pods',
-                'Volumes',
-                'Exit'
-            )
+        yield Header(show_clock=True, time_format='%I:%M:%S %p')
+        yield Center(
+            Vertical(
+                Static("ISOPOD", id="title"),
+                OptionList(
+                    "Containers",
+                    "Images",
+                    "Networks",
+                    "Pods",
+                    "Volumes",
+                    "Exit",
+                    id="options",
+                ),
+                id="menu"
+            ), id="main_content"
         )
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected):
